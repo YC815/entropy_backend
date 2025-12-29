@@ -1,14 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 from typing import List
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from app.core.database import get_db
+from app.models.task import Task, TaskStatus, TaskType
+from app.models.user import User
 from app.schemas.task import TaskCreate, TaskResponse, TaskUpdate
 from app.services import task_service
-from app.models.task import Task  # 用於查詢檢查
-from fastapi import File, UploadFile  # 新增這兩個
-from app.services.ai_service import ai_service  # 引入剛剛寫的 service
+from app.services.ai_service import ai_service
+from app.services.game_service import game_service
 
 router = APIRouter()
+
 
 # 1. 取得列表 (GET /tasks)
 
@@ -51,15 +57,31 @@ def read_task(
 # 使用 PATCH 而不是 PUT，因為我們通常只改標題或狀態，不用傳整包資料
 
 
+# app/api/v1/endpoints/tasks.py
+
 @router.patch("/{task_id}", response_model=TaskResponse)
 def update_task(
     task_id: int,
-    task_in: TaskUpdate,  # 這裡需要去 schemas 定義 TaskUpdate
+    task_in: TaskUpdate,
     db: Session = Depends(get_db)
 ):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    # 👇 === 🛡️ 新增：Dock 容量防呆 ===
+    # 如果使用者想把狀態改成 IN_DOCK，且目前狀態還不是 IN_DOCK
+    if task_in.status == TaskStatus.IN_DOCK and task.status != TaskStatus.IN_DOCK:
+        # 計算目前 Dock 裡有幾個任務
+        dock_count = db.query(Task).filter(Task.status == TaskStatus.IN_DOCK).count()
+        if dock_count >= 3:
+            raise HTTPException(
+                status_code=400,
+                detail="Payload Dock is full (Max 3). Please complete existing tasks first."
+            )
+    # 👆 === 結束 ===
+
+    # ... (後面 update_data 邏輯保持不變)
 
     # Pydantic v2 的 update 寫法
     update_data = task_in.model_dump(exclude_unset=True)  # 只取有傳的欄位
@@ -110,3 +132,92 @@ async def create_tasks_from_speech(
         created_tasks.append(new_task)
 
     return created_tasks
+
+
+class CommitResponse(BaseModel):
+    task_id: int
+    status: str
+    xp_gained: int
+    hp_restored: bool
+    message: str
+
+
+@router.post("/{task_id}/commit", response_model=CommitResponse)
+def commit_task(
+    task_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    【結算儀式】完成任務並計算獎勵
+    - School: 釋放壓力 (HP 回升), 黑洞 +0.5 天
+    - Skill: 獲得 XP (Base * Multiplier), 黑洞 +3.0 天
+    """
+    # 1. 找任務
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if task.status == TaskStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail="Task already completed")
+
+    # 2. 獲取 User
+    user = db.query(User).filter(User.id == 1).first()  # 單機版預設 ID 1
+
+    if not user:
+        user = User(id=1, username="Commander", level=1.0, current_xp=0, blackhole_days=7.0)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    # 3. 取得當下的狀態倍率 (在按下按鈕的那一刻結算)
+    # 我們只需要 multiplier，所以呼叫 game_service
+    state = game_service.calculate_state(db, user_id=1)
+    multiplier = state["multiplier"]
+
+    response_data = {
+        "task_id": task.id,
+        "status": "completed",
+        "xp_gained": 0,
+        "hp_restored": False,
+        "message": ""
+    }
+
+    # 4. 分歧判斷
+    if task.type == TaskType.SCHOOL:
+        # === SCHOOL (維運) ===
+        # 獎勵：黑洞 +0.5 天
+        user.blackhole_days += 0.5
+        response_data["hp_restored"] = True
+        response_data["message"] = "Integrity Restored. Blackhole delayed by 12 hours."
+
+    elif task.type == TaskType.SKILL:
+        # === SKILL (進化) ===
+        # 獎勵：XP * 倍率
+        final_xp = int(task.xp_value * multiplier)
+        user.current_xp += final_xp
+
+        # 獎勵：黑洞 +3.0 天
+        user.blackhole_days += 3.0
+
+        # 升級邏輯 (簡單版：XP 累積到一定程度升級，這裡先不實作複雜公式)
+        # 假設每 1000 XP 升一級
+        user.level = 1.0 + (user.current_xp / 1000.0)
+
+        response_data["xp_gained"] = final_xp
+        response_data["message"] = f"Evolution Complete! +{final_xp} XP ({multiplier}x Efficiency). Blackhole delayed by 3 days."
+
+    else:
+        # === MISC ===
+        user.blackhole_days += 0.1  # 微量獎勵
+        response_data["xp_gained"] = 10
+        user.current_xp += 10
+        response_data["message"] = "Task done."
+
+    # 5. 標記完成並存檔
+    task.status = TaskStatus.COMPLETED
+    # 更新 User 的最後登入時間/活躍時間
+    user.last_login = datetime.now(timezone.utc)
+
+    db.commit()
+
+    return response_data

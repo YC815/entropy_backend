@@ -6,23 +6,54 @@ from app.models.task import Task, TaskType, TaskStatus
 from app.models.user import User
 
 
+# app/services/game_service.py
+# ... imports 保持不變 ...
+
 class GameService:
 
     @staticmethod
     def calculate_state(db: Session, user_id: int = 1):
-        """
-        核心數學引擎：計算當下的 HP (Integrity) 與 效率倍率 (Multiplier)
-        """
-        # 1. 獲取 User 資料 (如果沒有就自動建立一個預設的)
+        # 1. 獲取 User (若無則建立)
         user = db.query(User).filter(User.id == user_id).first()
+        now = datetime.now(timezone.utc)
+
         if not user:
-            user = User(id=user_id, username="Commander", level=1.0, current_xp=0)
+            user = User(
+                id=user_id,
+                username="Commander",
+                level=1.0,
+                current_xp=0,
+                blackhole_days=7.0,
+                last_blackhole_update=now  # 初始化時間
+            )
             db.add(user)
             db.commit()
             db.refresh(user)
 
-        # 2. 獲取所有「活躍中」的「School」任務 (因為只有 School 會扣 HP)
+        # 👇 === ⏳ 新增：惰性計算黑洞扣除 ===
+        # 確保 last_blackhole_update 有時區資訊
+        last_update = user.last_blackhole_update.replace(tzinfo=timezone.utc) if user.last_blackhole_update.tzinfo is None else user.last_blackhole_update
+
+        delta_seconds = (now - last_update).total_seconds()
+
+        # 只有經過 60 秒以上才更新，避免頻繁寫入
+        if delta_seconds > 60:
+            days_elapsed = delta_seconds / 86400.0  # 換算成天
+            user.blackhole_days -= days_elapsed
+
+            if user.blackhole_days < 0:
+                user.blackhole_days = 0.0
+
+            # 更新時間戳記
+            user.last_blackhole_update = now
+            db.add(user)
+            db.commit()
+            # 記憶體中的 user 也已經被更新了
+        # 👆 === 結束 ===
+
+        # 2. 獲取 active tasks (後面邏輯保持不變...)
         active_school_tasks = db.query(Task).filter(
+            # ... (複製你原本的程式碼)
             Task.type == TaskType.SCHOOL,
             Task.status.notin_([TaskStatus.COMPLETED, TaskStatus.INCINERATED, TaskStatus.IN_DOCK])
             # 註：根據你的設計，IN_DOCK 視為「準備執行」，是否要扣壓力看你設定。
