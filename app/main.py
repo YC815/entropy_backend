@@ -19,7 +19,8 @@ app = FastAPI(
 origins = [
     "http://localhost",
     "http://localhost:3000",  # Next.js / React 預設 Port
-    "http://localhost:5173",  # Vite (Vue/React) 預設 Port
+    "http://localhost:5173",
+    "http://localhost:3001"
 ]
 
 app.add_middleware(
