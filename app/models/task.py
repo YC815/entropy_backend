@@ -21,7 +21,6 @@ class TaskType(str, PyEnum):
 class TaskStatus(str, PyEnum):
     DRAFT = "draft"
     STAGED = "staged"
-    IN_DOCK = "in_dock"
     COMPLETED = "completed"
     INCINERATED = "incinerated"
 

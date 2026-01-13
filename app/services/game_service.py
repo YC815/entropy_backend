@@ -55,9 +55,7 @@ class GameService:
         active_school_tasks = db.query(Task).filter(
             # ... (複製你原本的程式碼)
             Task.type == TaskType.SCHOOL,
-            Task.status.notin_([TaskStatus.COMPLETED, TaskStatus.INCINERATED, TaskStatus.IN_DOCK])
-            # 註：根據你的設計，IN_DOCK 視為「準備執行」，是否要扣壓力看你設定。
-            # 這裡暫時假設 IN_DOCK 還是會產生壓力，直到做完 (COMPLETED) 為止。
+            Task.status.notin_([TaskStatus.COMPLETED, TaskStatus.INCINERATED])
         ).all()
 
         total_stress = 0.0

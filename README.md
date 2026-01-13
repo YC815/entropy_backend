@@ -87,20 +87,6 @@
 - 內容強調 **原子任務目標** (e.g., `ft_atoi`)。
 - 右側顯示：`+500 XP` (獎勵預覽)。
 
-- **2.3 底部常駐：The Payload Dock (物流裝載區)**
-- **位置：** 螢幕最底部置中，半透明磨砂玻璃質感。
-- **結構：** 3 個空插槽 (Slots) + 右側一個 **[ ENGAGE ]** 發射按鈕。
-- **互動 (The Loading Ritual)：**
-- 將 Dashboard 上的方塊拖曳至插槽。
-- **音效：** `Ka-clack` (槍枝上膛或機械鎖定聲)。
-- **限制：** 最多 3 個。滿了之後再拖會被彈開 (Bounciness)，強迫單工。
-
-- **發射 (Launch)：**
-- 只有當插槽內有任務時，[ ENGAGE ] 按鈕才會亮起黃光並跳動。
-- 點擊後，執行 **轉場動畫**：Dashboard 後退變暗，Dock 向上滑動覆蓋全螢幕，進入 Tab 3。
-
----
-
 ### 分頁三：RUNTIME (執行與專注)
 
 **功能：** 深度工作，排除干擾，結算獎勵。
@@ -141,9 +127,7 @@
 2. **Plan (Tab 2):**
 
 - 你看到物理報告卡片是紅色的（剩 2 天），而且因為很急，它在左側變得很大一張。
-- 你把它拖進底部的 **Dock Slot 1**。
-- 你想著 42 的進度，把「指標練習」拖進 **Dock Slot 2**。
-- 你按下發光的 **[ ENGAGE ]**。
+- 你在 Dashboard 的任務列表逐一勾選完成，狀態即時更新。
 
 3. **Execute (Tab 3):**
 
@@ -158,7 +142,7 @@
 
 - **Frontend:** React / Next.js
 - **Styling:** Tailwind CSS (處理 Flat Colors 很方便) + Framer Motion (處理 Bento Grid 的變大變小、拖曳、碎紙機動畫)。
-- **State Management:** Zustand 或 React Context (管理跨 Tab 的 Dock 狀態)。
+- **State Management:** Zustand 或 React Context。
 
 - **Backend:** Python (FastAPI)
 - **AI:** OpenAI API (Whisper for Audio, GPT-4o for parsing intent).

@@ -69,20 +69,6 @@ def update_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # 👇 === 🛡️ 新增：Dock 容量防呆 ===
-    # 如果使用者想把狀態改成 IN_DOCK，且目前狀態還不是 IN_DOCK
-    if task_in.status == TaskStatus.IN_DOCK and task.status != TaskStatus.IN_DOCK:
-        # 計算目前 Dock 裡有幾個任務
-        dock_count = db.query(Task).filter(Task.status == TaskStatus.IN_DOCK).count()
-        if dock_count >= 3:
-            raise HTTPException(
-                status_code=400,
-                detail="Payload Dock is full (Max 3). Please complete existing tasks first."
-            )
-    # 👆 === 結束 ===
-
-    # ... (後面 update_data 邏輯保持不變)
-
     # Pydantic v2 的 update 寫法
     update_data = task_in.model_dump(exclude_unset=True)  # 只取有傳的欄位
     for field, value in update_data.items():
