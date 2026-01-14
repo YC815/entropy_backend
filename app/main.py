@@ -1,4 +1,5 @@
 # app/main.py
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
@@ -23,8 +24,12 @@ origins = [
     "http://localhost",
     "http://localhost:3000",  # Next.js / React 預設 Port
     "http://localhost:5173",
-    "http://localhost:3001"
+    "http://localhost:3001",
 ]
+
+# 生產環境：從環境變數讀取前端 URL
+if frontend_url := os.getenv("FRONTEND_URL"):
+    origins.append(frontend_url)
 
 app.add_middleware(
     CORSMiddleware,
