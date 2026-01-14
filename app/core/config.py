@@ -1,11 +1,15 @@
 # app/core/config.py
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "EntroPy Backend"
     API_V1_STR: str = "/api/v1"
-    DATABASE_URL: str = "sqlite:///./entropy.db"
+    DATABASE_URL: str = Field(
+        default="sqlite:///./entropy.db",
+        description="Database connection URL. Use sqlite:////app/data/entropy.db in Docker"
+    )
 
     # AI Service API Keys
     GROQ_API_KEY: str

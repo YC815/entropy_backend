@@ -3,11 +3,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
-from app.core.database import Base, engine
 
-# 【重要】這行程式碼會在啟動時，自動依照 Models 在資料庫建立表格
-# 在正式生產環境通常會用 Alembic 做遷移，但在開發初期這樣最快
-Base.metadata.create_all(bind=engine)
+# 【重要】資料庫遷移現在使用 Alembic 管理
+# 不再使用 Base.metadata.create_all()
+# 請使用以下指令初始化資料庫：
+#   alembic upgrade head
+#
+# 開發時創建新遷移：
+#   alembic revision --autogenerate -m "描述"
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

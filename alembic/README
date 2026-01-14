@@ -1,0 +1,50 @@
+Generic single-database configuration for Alembic.
+
+# Alembic Database Migrations
+
+## Usage
+
+### Create a new migration
+
+Auto-generate a migration based on model changes:
+```bash
+alembic revision --autogenerate -m "Description of changes"
+```
+
+### Apply migrations
+
+Apply all pending migrations:
+```bash
+alembic upgrade head
+```
+
+### Rollback migrations
+
+Rollback one migration:
+```bash
+alembic downgrade -1
+```
+
+Rollback to a specific revision:
+```bash
+alembic downgrade <revision_id>
+```
+
+### View migration history
+
+```bash
+alembic history
+```
+
+### View current revision
+
+```bash
+alembic current
+```
+
+## Important Notes
+
+- Always review auto-generated migrations before applying them
+- Test migrations in a development environment first
+- Alembic reads DATABASE_URL from app.core.config.settings
+- Migration files are stored in alembic/versions/

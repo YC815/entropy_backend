@@ -4,6 +4,19 @@ from app.api.v1.endpoints import tasks, dashboard
 
 api_router = APIRouter()
 
+# Health check endpoint
+@api_router.get("/health", tags=["health"])
+def health_check():
+    """
+    Health check endpoint for Docker healthcheck and monitoring.
+    Returns 200 OK if the service is running.
+    """
+    return {
+        "status": "ok",
+        "service": "EntroPy Backend",
+        "version": "1.0.0"
+    }
+
 # 這裡把 tasks.py 裡面的路由掛載進來
 # prefix="/tasks" 代表網址會是 /api/v1/tasks/...
 # tags=["tasks"] 會在 Swagger UI 上建立分類標籤
