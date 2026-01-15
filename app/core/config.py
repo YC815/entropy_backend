@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str
 
     # Timezone for task scheduling
-    TZ: str = "UTC"
+    TZ: str = "Asia/Taipei"
 
     # 這是 Pydantic v2 的寫法
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
