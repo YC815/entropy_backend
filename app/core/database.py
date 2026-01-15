@@ -3,13 +3,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from app.core.config import settings
 
-# 1. 建立引擎
-# connect_args={"check_same_thread": False} 是 SQLite 專用的設定
-# 因為 SQLite 預設不允許不同執行緒共用連線，但在 FastAPI 這是常態
-engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args={"check_same_thread": False}
-)
+# 根據資料庫類型決定連接參數
+# check_same_thread 是 SQLite 專用，PostgreSQL 不認識這個參數
+connect_args = {}
+if settings.DATABASE_URL.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
+
+engine = create_engine(settings.DATABASE_URL, connect_args=connect_args)
 
 # 2. 建立 Session 工廠 (負責生產連線)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
