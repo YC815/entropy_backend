@@ -100,7 +100,12 @@ def delete_task(
 # POST /api/v1/tasks/speech
 
 
-@router.post("/speech", response_model=List[TaskResponse], status_code=status.HTTP_201_CREATED)
+class SpeechTasksResponse(BaseModel):
+    transcript: str
+    tasks: List[TaskResponse]
+
+
+@router.post("/speech", response_model=SpeechTasksResponse, status_code=status.HTTP_201_CREATED)
 async def create_tasks_from_speech(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
@@ -109,7 +114,7 @@ async def create_tasks_from_speech(
     【Gemini 原生版】接收語音檔 -> Gemini 直接聽並回傳 JSON -> 批次建立任務
     """
     # 1. 呼叫 AI Service (直接處理音訊)
-    tasks_data = await ai_service.process_audio_instruction(file)
+    tasks_data, transcript = await ai_service.process_audio_instruction(file)
 
     # 2. 寫入資料庫
     created_tasks = []
@@ -117,7 +122,7 @@ async def create_tasks_from_speech(
         new_task = task_service.create_new_task(db=db, task_in=task_in)
         created_tasks.append(new_task)
 
-    return created_tasks
+    return {"transcript": transcript, "tasks": created_tasks}
 
 
 class CommitResponse(BaseModel):

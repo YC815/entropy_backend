@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     # AI Service API Keys
     GROQ_API_KEY: str
     GEMINI_API_KEY: str
+    GEMINI_MODEL: str = Field(
+        default="gemini-3-flash-preview",
+        description="Gemini model version for multimodal task parsing"
+    )
 
     # Timezone for task scheduling
     TZ: str = "Asia/Taipei"
